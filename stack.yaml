@@ -1,0 +1,13 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- mysql-0.1.1.8
+- mysql-simple-0.1.0.1
+resolver: lts-7.1
+
+location:
+   git: https://github.com/paul-rouse/mysql-simple
+   commit: 87d9deaeea5984b51af1bc1c9425ecd333990d8e
+   extra-dep: true
