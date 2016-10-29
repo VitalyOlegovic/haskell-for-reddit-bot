@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lib
     ( someFunc
     ) where
@@ -11,4 +13,4 @@ hello = do
   return i
 
 someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+someFunc = Prelude.putStrLn "someFunc"
