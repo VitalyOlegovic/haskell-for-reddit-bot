@@ -2,16 +2,27 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Lib
-    ( someFunc, hello
+module Persistence
+    ( someFunc, getSubredditList
     ) where
+
+import Properties
 
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryResults
 import Database.MySQL.Simple.Result
 
 connectInfo :: ConnectInfo
-connectInfo = ConnectInfo "192.168.1.7" 3306 "root" "root" "reddit_bot" [] "" Nothing
+connectInfo = ConnectInfo{
+    connectHost="192.168.1.7" 
+  , connectPort=3306
+  , connectUser="root"
+  , connectPassword="root"
+  , connectDatabase="reddit_bot"
+  , connectOptions=[]
+  , connectPath=""
+  , connectSSL=Nothing
+}
 
 
 data Subreddit = Subreddit{
@@ -38,13 +49,15 @@ instance QueryResults Subreddit where
               
     convertResults fs vs  = convertError fs vs 2
     
-hello :: IO [Subreddit]
-hello = do
+getSubredditList :: IO [Subreddit]
+getSubredditList = do
   conn <- connect connectInfo
   r <- query_ conn "select * from subreddits" 
-  Prelude.putStrLn $ show r
+  mapM_ (Prelude.putStrLn . show) r
   return r
 
 
 someFunc :: IO ()
 someFunc = Prelude.putStrLn "someFunc"
+
+

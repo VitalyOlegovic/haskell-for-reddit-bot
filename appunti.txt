@@ -1,1 +1,3 @@
 stack solver --update-config
+
+http://hackage.haskell.org/package/ini-0.3.5/docs/Data-Ini.html

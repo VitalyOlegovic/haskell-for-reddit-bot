@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+import Persistence
+import Properties
 
 main :: IO ()
 main = someFunc

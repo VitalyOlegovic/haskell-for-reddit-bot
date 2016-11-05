@@ -3,9 +3,11 @@ extra-package-dbs: []
 packages:
 - '.'
 - location:
-   git: https://github.com/paul-rouse/mysql-simple
-   commit: 87d9deaeea5984b51af1bc1c9425ecd333990d8e
-   extra-dep: true
+    git: https://github.com/paul-rouse/mysql-simple
+    extra-dep: true
+    commit: 87d9deaeea5984b51af1bc1c9425ecd333990d8e
 extra-deps:
+- api-builder-0.12.0.0
 - mysql-0.1.2.1
+- reddit-0.2.1.0
 resolver: lts-7.1

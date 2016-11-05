@@ -1,0 +1,8 @@
+[DATABASE]
+hostname=
+post=
+user=
+password=
+[REDDIT]
+user=
+password=
