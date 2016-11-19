@@ -19,16 +19,24 @@ data Link = Link{
   url :: Text
 } deriving Show
 
-sendLink :: Link -> Reddit PostID
-sendLink = submitLink (R $ (subreddit link))
+sendLink :: (Monad m) => Link -> RedditT m PostID
+sendLink link = submitLink (R $ (subreddit link))
                       (title link)
                       (url link)
 
 clientCall :: Properties.Login -> Link -> IO (Either (APIError RedditError) PostID)
-clientCall login = runRedditWith opt sendLink
+clientCall login link = runRedditWith opt (sendLink link)
     where
           opt = defaultRedditOptions
                     { loginMethod = Credentials (username login) (password login),
                       customUserAgent = Just $ fromString "vitalprogr" }
 
-loginAndSend link = clientCall readLogin link
+loginAndSend :: Link -> IO (Either String PostID)
+loginAndSend link = do
+  login <- readLogin
+  case login of Left error -> return $ Left error
+                Right login -> do
+                  result <- clientCall login link
+                  case result of Left error -> return . Left $ show error
+                                 Right postId -> return $ Right postId
+
