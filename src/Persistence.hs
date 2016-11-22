@@ -2,28 +2,36 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Persistence
-    ( someFunc, getSubredditList
-    ) where
+module Persistence(
+  someFunc,
+  getSubredditList
+) where
 
 import Properties
 
+import Data.Text
+import GHC.Word
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryResults
 import Database.MySQL.Simple.Result
 
-connectInfo :: ConnectInfo
-connectInfo = ConnectInfo{
-    connectHost="192.168.1.7" 
-  , connectPort=3306
-  , connectUser="root"
-  , connectPassword="root"
-  , connectDatabase="reddit_bot"
-  , connectOptions=[]
-  , connectPath=""
-  , connectSSL=Nothing
-}
+getDatasource :: IO (Either String (IO Connection))
+getDatasource = do
+  ds <- readDatasource
+  case ds of Left error -> return (Left $ show error)
+             Right dataSource -> return $ Right (connect (dataSourceToConnectInfo dataSource))
 
+dataSourceToConnectInfo :: Properties.Datasource -> ConnectInfo
+dataSourceToConnectInfo datasource =   ConnectInfo{
+    connectHost = unpack $ dbHostname datasource
+  , connectPort = read (unpack $ dbPort datasource) :: GHC.Word.Word16
+  , connectUser = unpack $ dbUser datasource
+  , connectPassword = unpack $ dbPassword datasource
+  , connectDatabase = unpack $ dbDatabase datasource
+  , connectOptions = []
+  , connectPath = ""
+  , connectSSL = Nothing
+}
 
 data Subreddit = Subreddit{
     id :: Integer
@@ -49,12 +57,15 @@ instance QueryResults Subreddit where
               
     convertResults fs vs  = convertError fs vs 2
     
-getSubredditList :: IO [Subreddit]
+getSubredditList :: IO (Either String [Subreddit])
 getSubredditList = do
-  conn <- connect connectInfo
-  r <- query_ conn "select * from subreddits" 
-  mapM_ (Prelude.putStrLn . show) r
-  return r
+  conn <- getDatasource
+  case conn of Left error -> return $ ( Left $ show error )
+               Right c -> do
+                 connection <- c
+                 r <- query_ connection "select * from subreddits" 
+                 mapM_ (Prelude.putStrLn . show) r
+                 return $ Right r
 
 
 someFunc :: IO ()

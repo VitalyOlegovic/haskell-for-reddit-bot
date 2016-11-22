@@ -2,7 +2,8 @@
 
 module RedditClient(
   Link(..),
-  clientCall
+  clientCall,
+  loginAndSend
 ) where
 
 import Properties
