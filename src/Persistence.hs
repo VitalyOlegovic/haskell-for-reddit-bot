@@ -3,31 +3,35 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Persistence(
-  someFunc,
-  getSubredditList
+  getSubreddits
 ) where
 
 import Properties
 
-import Data.Text
+import Data.Text as T
+import Data.ByteString.Char8 as BS
 import GHC.Word
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryResults
 import Database.MySQL.Simple.Result
 
-getDatasource :: IO (Either String (IO Connection))
-getDatasource = do
+{-
+  See https://hackage.haskell.org/package/mysql-simple-0.4.0.1/docs/Database-MySQL-Simple.html
+-}
+
+getConnection :: IO (Either String (IO Connection))
+getConnection = do
   ds <- readDatasource
   case ds of Left error -> return (Left $ show error)
              Right dataSource -> return $ Right (connect (dataSourceToConnectInfo dataSource))
 
 dataSourceToConnectInfo :: Properties.Datasource -> ConnectInfo
 dataSourceToConnectInfo datasource =   ConnectInfo{
-    connectHost = unpack $ dbHostname datasource
-  , connectPort = read (unpack $ dbPort datasource) :: GHC.Word.Word16
-  , connectUser = unpack $ dbUser datasource
-  , connectPassword = unpack $ dbPassword datasource
-  , connectDatabase = unpack $ dbDatabase datasource
+    connectHost = T.unpack $ dbHostname datasource
+  , connectPort = read (T.unpack $ dbPort datasource) :: GHC.Word.Word16
+  , connectUser = T.unpack $ dbUser datasource
+  , connectPassword = T.unpack $ dbPassword datasource
+  , connectDatabase = T.unpack $ dbDatabase datasource
   , connectOptions = []
   , connectPath = ""
   , connectSSL = Nothing
@@ -44,31 +48,37 @@ data Subreddit = Subreddit{
   } deriving Show
 
 instance QueryResults Subreddit where
-    convertResults [f1,f2,f3,f4,f5,f6,f7] [v1,v2,v3,v4,v5,v6,v7] 
+    convertResults [f1,f2,f3,f4,f5,f6,f7] [v1,v2,v3,v4,v5,v6,v7]
       = Subreddit x1 x2 x3 x4 x5 x6 x7
-     where 
-       !x1 = convert f1 v1 
+     where
+       !x1 = convert f1 v1
        !x2 = convert f2 v2
        !x3 = convert f3 v3
        !x4 = convert f4 v4
        !x5 = convert f5 v5
        !x6 = convert f6 v6
        !x7 = convert f7 v7
-              
+
     convertResults fs vs  = convertError fs vs 2
-    
-getSubredditList :: IO (Either String [Subreddit])
-getSubredditList = do
-  conn <- getDatasource
+
+getSubreddits :: IO (Either String [Subreddit])
+getSubreddits = do
+  conn <- getConnection
   case conn of Left error -> return $ ( Left $ show error )
                Right c -> do
                  connection <- c
-                 r <- query_ connection "select * from subreddits" 
+                 r <- query_ connection "select * from subreddits"
                  mapM_ (Prelude.putStrLn . show) r
                  return $ Right r
 
-
-someFunc :: IO ()
-someFunc = Prelude.putStrLn "someFunc"
-
-
+getFeeds :: Subreddit -> IO (Either String [Subreddit])
+getFeeds subreddit  = do
+  conn <- getConnection
+  case conn of Left error -> return $ ( Left $ show error )
+               Right c -> do
+                 connection <- c
+                 let subredditId = Persistence.id subreddit
+                 r <- query connection "select * from feeds where id = ?" [subredditId :: Integer]
+                 --return r
+                 --mapM_ (Prelude.putStrLn . show) r
+                 return $ Right r

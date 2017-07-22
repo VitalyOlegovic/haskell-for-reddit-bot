@@ -10,3 +10,5 @@ import Reddit
 
 main :: IO (Either String Reddit.Types.Post.PostID)
 main = loginAndSend $ RedditClient.Link (pack "testitaly") (pack "prova") (pack "https://duckduckgo.com/")
+
+updateFeeds = getSubreddits
