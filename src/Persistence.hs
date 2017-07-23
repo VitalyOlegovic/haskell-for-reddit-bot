@@ -3,7 +3,8 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Persistence(
-  getSubreddits
+  getSubreddits, getFeedIdsBySubreddit, getFeedById,
+  Subreddit(..), Feed(..), FeedSubreddit(..)
 ) where
 
 import Properties
@@ -22,7 +23,7 @@ import Database.MySQL.Simple.Result
 getConnection :: IO (Either String (IO Connection))
 getConnection = do
   ds <- readDatasource
-  case ds of Left error -> return (Left $ show error)
+  case ds of Left err -> return (Left $ show err)
              Right dataSource -> return $ Right (connect (dataSourceToConnectInfo dataSource))
 
 dataSourceToConnectInfo :: Properties.Datasource -> ConnectInfo
@@ -38,7 +39,7 @@ dataSourceToConnectInfo datasource =   ConnectInfo{
 }
 
 data Subreddit = Subreddit{
-    id :: Integer
+    subredditId :: Integer
   , name :: String
   , daily_quota :: Integer
   , priority :: Integer
@@ -61,24 +62,65 @@ instance QueryResults Subreddit where
 
     convertResults fs vs  = convertError fs vs 2
 
+data Feed = Feed{
+    feedId :: Integer
+  , url :: String
+  , parent_feed :: Integer
+} deriving Show
+
+instance QueryResults Feed where
+  convertResults [fieldId,fieldUrl,fieldParentFeed] [valueId,valueUrl,valueParentFeed]
+    = Feed x1 x2 x3
+    where
+    !x1 = convert fieldId valueId
+    !x2 = convert fieldUrl valueUrl
+    !x3 = convert fieldParentFeed valueParentFeed
+
+    convertResults fs vs  = convertError fs vs 2
+
+data FeedSubreddit = FeedSubreddit{
+    fsFeedId :: Integer
+  , fsSubredditId :: Integer
+  , flair :: Maybe String
+} deriving Show
+
+instance QueryResults FeedSubreddit where
+  convertResults [fieldFeedId, fieldSubredditId, fieldFlair] [valueFeedId, valueSubredditId, valueFlair]
+    = FeedSubreddit x1 x2 x3
+    where
+      !x1 = convert fieldFeedId valueFeedId
+      !x2 = convert fieldSubredditId valueSubredditId
+      !x3 = convert fieldFlair valueFlair
+
+      convertResults fs vs  = convertError fs vs 2
+
 getSubreddits :: IO (Either String [Subreddit])
 getSubreddits = do
   conn <- getConnection
-  case conn of Left error -> return $ ( Left $ show error )
+  case conn of Left err -> return $ ( Left $ show err )
                Right c -> do
                  connection <- c
-                 r <- query_ connection "select * from subreddits"
+                 r <- query_ connection "select * from subreddits where enabled = true order by priority"
                  mapM_ (Prelude.putStrLn . show) r
                  return $ Right r
 
-getFeeds :: Subreddit -> IO (Either String [Subreddit])
-getFeeds subreddit  = do
+getFeedIdsBySubreddit :: Subreddit -> IO (Either String [FeedSubreddit])
+getFeedIdsBySubreddit subreddit  = do
   conn <- getConnection
-  case conn of Left error -> return $ ( Left $ show error )
+  case conn of Left err -> return $ ( Left $ show err )
                Right c -> do
                  connection <- c
-                 let subredditId = Persistence.id subreddit
-                 r <- query connection "select * from feeds where id = ?" [subredditId :: Integer]
-                 --return r
-                 --mapM_ (Prelude.putStrLn . show) r
+                 let subId = subredditId subreddit
+                 r <- query connection "select * from feed_subreddit where subreddit_id = ?" [subId :: Integer]
+                 mapM_ (Prelude.putStrLn . show) r
+                 return $ Right r
+
+getFeedById :: Integer -> IO (Either String [Feed])
+getFeedById identifier = do
+  conn <- getConnection
+  case conn of Left err -> return $ ( Left $ show err )
+               Right c -> do
+                 connection <- c
+                 r <- query connection "select * from feeds where id = ?" [identifier :: Integer]
+                 mapM_ (Prelude.putStrLn . show) r
                  return $ Right r

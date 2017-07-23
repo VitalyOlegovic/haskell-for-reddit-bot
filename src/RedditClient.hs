@@ -34,10 +34,9 @@ clientCall login link = runRedditWith opt (sendLink link)
 
 loginAndSend :: Link -> IO (Either String PostID)
 loginAndSend link = do
-  login <- readLogin
-  case login of Left error -> return $ Left error
+  logIn <- readLogin
+  case logIn of Left err -> return $ Left err
                 Right login -> do
                   result <- clientCall login link
-                  case result of Left error -> return . Left $ show error
+                  case result of Left err -> return . Left $ show err
                                  Right postId -> return $ Right postId
-
